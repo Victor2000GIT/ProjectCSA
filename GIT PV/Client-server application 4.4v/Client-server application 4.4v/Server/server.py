@@ -25,7 +25,7 @@ BUFSIZ = 1024 # Размер буфера
 Worked = True # Работа сервера
 MAX_COUNT_CLIENTS = 10 # Максимальное количество клиентов
 OnLineClients = dict() # Список подключенных клиентов
-IsCanConnectList = []
+IsCanConnectList = []  
 NewMessagesList = dict() # Новые сообщения для каждого клиента
 KEYS = None # Ключи для открытого шифрования
 CashCaptImgList = []
@@ -42,8 +42,8 @@ CommandSet = [
     "Clearfilter", # Clear filter
     "Help", # Help for commands
     "Userscount", # Count of online users
-    "Exit" # Stop server
-   
+    "Exit", # Stop server
+    "Admin"# GUIUsers form
 ]
 FilterQuest = ['Reply']
 CashSize = 10
@@ -154,8 +154,12 @@ def ReceivingMessages(Client, addr, USERNAME): # Прием данных от к
                     elif Msg[0] == 'Login':
                         Login = Msg[1] # Выделим логин из сообщения
                         Id = UserInBase(UsersCur, Login) # Получение ID пользователя из базы
-   
-                        if Id and not Id in OnLineClients : # Если пользователь зарегистрирован и не подключен
+						canConnection = int(UsersCur.execute("select ConConection from users where id=?", [Id]).fetchone()[0])
+                        # Если пользователю запрещено входить, то выводим сообщение BANNED
+						if 0 == canConnection:
+                            SendData(Client, "BANNED")
+                            continue
+                        if Id and not Id in OnLineClients and not Login in IsCanConnectList and canConnection != 0: # Если пользователь зарегистрирован и не подключен
                             UserData =  GetRecordsData(UsersDB, UsersCur, 'Users', "Id='" + str(Id) + "'", "*")[0]
                             Md5Pass = hashlib.md5() # Получение хэша пароля
                             Md5Pass.update(Msg[2])
@@ -798,13 +802,14 @@ def CommandInterpreter():
             elif CommandNum == 12: # Exit
                 Worked = False
                 return
-            # elif CommandNum == 13:  # GUIUsers
-                    # adminWindow = GUIUsers.Tk()  # Окно
-                    # adminWindow.geometry('700x450')  # Размер окнаа
-                    # adminWindow.title('Списки пользователей')  # Заголовок окна
-                    # adminWindow.resizable(width=False, height=False)  # Запрет на изменение размеров окна
-                    # obj = GUIUsers.But_print(adminWindow)
-                    # adminWindow.mainloop()
+				# Если в консоли пользователь ввел комманду под номером 13 , то появится форма блокировки пользователя
+            elif CommandNum == 13:  #GUIUsers
+                    adminWindow = GUIUsers.Tk()  #Окно
+                    adminWindow.geometry('700x450')  #Размер окнаа
+                    adminWindow.title('Списки пользователей')  # Заголовок окна
+                    adminWindow.resizable(width=False, height=False)  # Запрет на изменение размеров окна
+                    obj = GUIUsers.But_print(adminWindow)
+                    adminWindow.mainloop()
         except Exception, e:
             print 'ERROR:', e.args # Соединение было разорвано удаленным узлом
             raw_input("Press ENTER to continue")
